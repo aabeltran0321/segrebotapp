@@ -6,7 +6,7 @@ import sys
 import glob
 import importlib.util
 from tensorflow.lite.python.interpreter import Interpreter
-
+from config import min_conf_threshold
 
 
 ### Define function for inferencing with TFLite model and displaying results
@@ -31,7 +31,7 @@ float_input = (input_details[0]['dtype'] == np.float32)
 input_mean = 127.5
 input_std = 127.5
 
-min_conf_threshold=0.50   #Confidence threshold (try changing this to 0.01 if you don't see any detection results)
+  #Confidence threshold (try changing this to 0.01 if you don't see any detection results)
 
 def detection_process(image):
         interpreter = Interpreter(model_path=modelpath)
@@ -81,9 +81,9 @@ def framers(image, boxes, classes, scores):
                         cv2.rectangle(image, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
                         cv2.putText(image, f"{labels[int(classes[i])]} - {round(scores[i]*100,1)}%", (xmin, ymin), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
                         #return image,xmin,ymin,xmax,ymax,labels[int(classes[i])]
-                        num_recognized +=1
+                        return image, f"{labels[int(classes[i])]}"
 
-        return image, num_recognized
+        return image, ""
 
 if __name__=="__main__":
         fname = "./testing/IMG_0702.JPG"

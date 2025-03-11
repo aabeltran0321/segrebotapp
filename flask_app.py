@@ -3,7 +3,9 @@ import sqlite3
 import hashlib
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'
+app.secret_key = 'S3Gr3b0t2025!'
+
+extension = "./"
 
 # Hash function for passwords
 def hash_password(password):
@@ -11,7 +13,7 @@ def hash_password(password):
 
 # Database setup
 def get_db_connection():
-    conn = sqlite3.connect("segrebot_database.db")
+    conn = sqlite3.connect(f"{extension}segrebot_database.db")
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -20,7 +22,7 @@ def home():
     print(session)
     if 'username' in session:
         
-        with sqlite3.connect("segrebot_database.db") as conn:
+        with sqlite3.connect(f"{extension}segrebot_database.db") as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT points FROM users WHERE username=?", (session['username'],))
             points = cursor.fetchone()[0]
@@ -33,14 +35,18 @@ def redeem():
         return redirect(url_for('login'))
     
     code = request.form['code']
-    with sqlite3.connect("segrebot_database.db") as conn:
+    name = request.form['name']
+    
+    with sqlite3.connect(f"{extension}segrebot_database.db") as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT points, is_redeemed FROM rewards WHERE code=?", (code,))
+        
+        # Check if the reward exists and is not redeemed
+        cursor.execute("SELECT points, redeemer FROM rewards WHERE code=?", (code,))
         reward = cursor.fetchone()
         
-        if reward and reward[1] == 0:  # Code exists and is not redeemed
+        if reward and (reward[1] is None or reward[1] == ''):  # Code exists and is not redeemed
             cursor.execute("UPDATE users SET points = points + ? WHERE username=?", (reward[0], session['username']))
-            cursor.execute("UPDATE rewards SET is_redeemed=1 WHERE code=?", (code,))
+            cursor.execute("UPDATE rewards SET redeemer = ? WHERE code=?", (session['username'], code))
             conn.commit()
             flash("Reward redeemed successfully!", "success")
         else:
@@ -56,7 +62,7 @@ def signup():
         username = request.form['username']
         password = hash_password(request.form['password'])  # Hash password
         
-        with sqlite3.connect("segrebot_database.db") as conn:
+        with sqlite3.connect(f"{extension}segrebot_database.db") as conn:
             cursor = conn.cursor()
             try:
                 cursor.execute("INSERT INTO users (name, grade_section, username, password, points) VALUES (?, ?, ?, ?, 0)", 
@@ -75,7 +81,7 @@ def login():
         username = request.form['username']
         password = hash_password(request.form['password'])  # Hash input password
         
-        with sqlite3.connect("segrebot_database.db") as conn:
+        with sqlite3.connect(f"{extension}segrebot_database.db") as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM users WHERE username=? AND password=?", (username, password))
             user = cursor.fetchone()
@@ -95,10 +101,7 @@ def logout():
     session.pop('username', None)
     flash("Logged out successfully.", "success")
     return redirect(url_for('login'))
-def get_db_connection():
-    conn = sqlite3.connect("segrebot_database.db")
-    conn.row_factory = sqlite3.Row
-    return conn
+
 @app.route("/segrebot/rewards", methods=["POST"])
 def add_reward():
     data = request.get_json()
@@ -117,6 +120,46 @@ def add_reward():
         return jsonify({"message": "Reward added successfully"}), 201
     except sqlite3.IntegrityError:
         return jsonify({"error": "Code already exists"}), 400
+
+
+@app.route("/segrebot/admin/")
+def segrebot_admin_index():
+    conn = get_db_connection()
+    users = conn.execute("SELECT * FROM users").fetchall()
+    conn.close()
+    return render_template("segrebot_admin.html", users=users)
+
+@app.route("/segrebot/admin/rewards")
+def segrebot_admin_rewards():
+    conn = get_db_connection()
+    rewards = conn.execute("SELECT * FROM rewards").fetchall()
+    conn.close()
+    return render_template("segrebot_admin_rewards.html", rewards=rewards)
+
+@app.route("/segrebot/admin/delete_user/<int:id>")
+def segrebot_admin_delete_user(id):
+    conn = get_db_connection()
+    conn.execute("DELETE FROM users WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
+    flash("User deleted successfully!", "danger")
+    return redirect(url_for("segrebot_admin_index"))
+
+@app.route("/segrebot/admin/update_user", methods=["POST"])
+def segrebot_admin_update_user():
+    id = request.form["id"]
+    name = request.form["name"]
+    grade_section = request.form["grade_section"]
+    username = request.form["username"]
+    points = request.form["points"]
+    
+    conn = get_db_connection()
+    conn.execute("UPDATE users SET name = ?, grade_section = ?, username = ?, points = ? WHERE id = ?", 
+                 (name, grade_section, username, points, id))
+    conn.commit()
+    conn.close()
+    flash("User updated successfully!", "info")
+    return redirect(url_for("segrebot_admin_index"))
     
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0", port=8000)

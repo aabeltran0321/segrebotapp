@@ -61,30 +61,32 @@ def send_sms():
     print("✅ SMS sent!")
 
 # Monitor the bin status
-print("📡 Monitoring bin status...")
 
-try:
-    bin_full_time = None  # Start time when bin is detected as full
+if __name__ == "__main__":
+    print("📡 Monitoring bin status...")
 
-    while True:
-        distance = measure_distance()
+    try:
+        bin_full_time = None  # Start time when bin is detected as full
 
-        if distance and distance < THRESHOLD_DISTANCE:
-            print(f"⚠️ Bin is full! Distance: {distance} cm")
+        while True:
+            distance = measure_distance()
 
-            if bin_full_time is None:
-                bin_full_time = time.time()  # Start detection timer
+            if distance and distance < THRESHOLD_DISTANCE:
+                print(f"⚠️ Bin is full! Distance: {distance} cm")
 
-            elif time.time() - bin_full_time >= DETECTION_TIME:
-                send_sms()  # Send SMS alert
-                bin_full_time = None  # Reset timer
+                if bin_full_time is None:
+                    bin_full_time = time.time()  # Start detection timer
 
-        else:
-            bin_full_time = None  # Reset if bin is not full
-            print(f"✅ Bin not full. Distance: {distance} cm")
+                elif time.time() - bin_full_time >= DETECTION_TIME:
+                    send_sms()  # Send SMS alert
+                    bin_full_time = None  # Reset timer
 
-        time.sleep(1)
+            else:
+                bin_full_time = None  # Reset if bin is not full
+                print(f"✅ Bin not full. Distance: {distance} cm")
 
-except KeyboardInterrupt:
-    print("\n⛔ Stopping...")
-    GPIO.cleanup()
+            time.sleep(1)
+
+    except KeyboardInterrupt:
+        print("\n⛔ Stopping...")
+        GPIO.cleanup()

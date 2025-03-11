@@ -2,6 +2,7 @@ import I2C_LCD_driver
 import time
 from hx711 import HX711
 import RPi.GPIO as GPIO
+from scheduler import Scheduler
 
 # Setup GPIO
 GPIO.setwarnings(False)
@@ -18,6 +19,8 @@ hx.set_reference_unit(200)  # Change this value after calibration
 hx.reset()
 hx.tare()  # Set zero weight before measurement
 
+sch1 = Scheduler(1000)
+counter = 0
 def read_weight():
     """ Reads weight from HX711 and updates the LCD """
     lcd.lcd_clear()
@@ -26,22 +29,25 @@ def read_weight():
 
     try:
         while True:
-            weight = hx.get_weight(5)  # Read weight (average 5 readings)
-            if weight < 0:
-                weight = 0  # Prevent negative values
+            if sch1.Event():
+                weight = hx.get_weight(5)  # Read weight (average 5 readings)
+                if weight < 0:
+                    weight = 0  # Prevent negative values
 
-            lcd.lcd_clear()
-            lcd.lcd_display_string("Weight:", 1)
-            lcd.lcd_display_string(f"{weight:.2f} g", 2)
-            time.sleep(1)
+                lcd.lcd_clear()
+                lcd.lcd_display_string("Weight:", 1)
+                lcd.lcd_display_string(f"{weight:.2f} g", 2)
+                counter +=1
 
-    except KeyboardInterrupt:
-        print("\nExiting... Cleaning up GPIO.")
-        GPIO.cleanup()  # Release GPIO pins properly
-        lcd.lcd_clear()
-        lcd.lcd_display_string("Goodbye!", 1)
-        time.sleep(2)
-        lcd.lcd_clear()
+                if counter == 5:
+                    return weight
+            
 
-# Run function
-read_weight()
+    except:
+        pass
+
+    return 0
+        
+if __name__ == "__main__":
+    # Run function
+    read_weight()

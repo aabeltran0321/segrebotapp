@@ -60,6 +60,7 @@
             <div class="error">{{ error }}</div>
             {% endif %}
             <button type="submit">Redeem</button>
+            <input type="hidden" name="name" value="{{ username }}">
         </form>
         
         <a class="logout" href="/segrebot/logout">Logout</a>

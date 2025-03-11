@@ -5,12 +5,32 @@ from scheduler import Scheduler
 from weight_display import read_weight, lcd
 from ultrasonic_test import measure_distance, THRESHOLD_DISTANCE, DETECTION_TIME, send_sms
 import time
+import requests
+import random
+import string
+
+def generate_code(length=6):
+    """Generate a random alphanumeric string."""
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
+
+def send_request(points):
+    code1 = generate_code()
+    """Send a POST request with a generated code and input points."""
+    url = "https://bigboysautomation.pythonanywhere.com/segrebot/rewards"
+    data = {
+        "code": code1,
+        "points": points
+    }
+
+    response = requests.post(url, json=data)
+    return response.status_code, response.json(), code1 
 
 cap = camera_select(cam_source)
 sch1 = Scheduler(1000)
 sch2 = Scheduler(2000)
 counter = 0
-running = True
+running = False
+
 
 while running:
     #camera process
@@ -48,6 +68,13 @@ while running:
     while official_weight == 0 :
         official_weight = read_weight()
 
+    stats, response, code1 = send_request(official_weight*points_per_gram)
+
+    lcd.lcd_clear()
+    lcd.lcd_display_string(f"Weight: {official_weight:.2f} g", 1)
+    lcd.lcd_display_string(f"Code: {code1}", 2)
+    
+    time.sleep(5)
 
     #servo motor
 

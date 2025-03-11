@@ -62,6 +62,7 @@ def send_sms():
 
 # Monitor the bin status
 
+
 if __name__ == "__main__":
     print("📡 Monitoring bin status...")
 

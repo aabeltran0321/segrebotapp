@@ -1,0 +1,8 @@
+plastic
+plastic
+paper
+plastic
+lab_waste
+lab_waste
+lab_waste
+undefined
